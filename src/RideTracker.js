@@ -122,7 +122,7 @@ const RideTracker = ({ tracking, onRideUpdate, demoMode, directionRoute = [], on
       clearInterval(timerRef.current);
       clearInterval(demoTimerRef.current);
     }
-  }, [tracking, demoMode]);
+  }, [tracking, demoMode, directionRoute]);
 
   // Calculate distance and speed
   useEffect(() => {
@@ -142,7 +142,7 @@ const RideTracker = ({ tracking, onRideUpdate, demoMode, directionRoute = [], on
     if (onRideUpdate) {
       onRideUpdate({ positions, distance, duration, speed });
     }
-  }, [positions, duration]);
+  }, [positions, duration, distance, onRideUpdate, speed]);
 
   // Bike icon for current position
   const bikeIcon = new L.DivIcon({

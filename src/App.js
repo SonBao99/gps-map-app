@@ -144,7 +144,7 @@ function App() {
   const [lastRouteKey, setLastRouteKey] = useState("");
   const [musicOpen, setMusicOpen] = useState(false);
   const [tracking, setTracking] = useState(false);
-  const [rideStats, setRideStats] = useState({ positions: [], distance: 0, duration: 0, speed: 0 });
+  // Removed unused rideStats state to fix lint warning.
   const [demoMode, setDemoMode] = useState(false);
   const [rideHistory, setRideHistory] = useState(() => {
     const stored = localStorage.getItem('rideHistory');
@@ -427,7 +427,7 @@ function App() {
           />
           <DirectionsPolyline route={route} />
           {/* Live Ride Tracker Polyline and Marker */}
-          <RideTracker tracking={tracking} onRideUpdate={setRideStats} demoMode={demoMode} directionRoute={route} onFinishRide={handleFinishRide} />
+          <RideTracker tracking={tracking} onRideUpdate={() => {}} demoMode={demoMode} directionRoute={route} onFinishRide={handleFinishRide} />
           <MapClickHandler onClick={handleMapClick} />
         </MapContainer>
       </div>
