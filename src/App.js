@@ -124,7 +124,7 @@ function App() {
   const [directionsError, setDirectionsError] = useState(null);
   const [distance, setDistance] = useState(null);
   const [duration, setDuration] = useState(null);
-  const [destInput, setDestInput] = useState({ label: '', lat: '', lng: '' });
+
   const [destinationPopup, setDestinationPopup] = useState(false);
   const [loadingDirections, setLoadingDirections] = useState(false);
   const [lastRouteKey, setLastRouteKey] = useState("");
@@ -151,7 +151,6 @@ function App() {
   // Handle geocode selection
   const handleGeocodeSelect = ({ lat, lng, label }) => {
     setDestination([lat, lng]);
-    setDestInput({ label, lat, lng });
     setDirectionsError(null);
     setDistance(null);
     setDuration(null);
@@ -231,7 +230,6 @@ function App() {
   // Handle map click to set destination
   const handleMapClick = (latlng) => {
     setDestination(latlng);
-    setDestInput({ lat: latlng[0].toFixed(6), lng: latlng[1].toFixed(6) });
     setDirectionsError(null);
     setDistance(null);
     setDuration(null);
