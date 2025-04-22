@@ -47,6 +47,9 @@ function LocationMarker({ onLocation }) {
           (error) => {
             console.error('Error getting location:', error);
             setLocationError(`Error getting location: ${error.message}`);
+            // Set dummy Hanoi position if denied
+            if (onLocation) onLocation([21.0285, 105.8542]);
+            setPosition([21.0285, 105.8542]);
           }
         );
       } else {
@@ -118,7 +121,7 @@ function App() {
   const [darkMode, setDarkMode] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [defaultPosition, setDefaultPosition] = useState([21.0285, 105.8542]);
-  const [userPosition, setUserPosition] = useState(null);
+  const [userPosition, setUserPosition] = useState([21.0285, 105.8542]);
   const [destination, setDestination] = useState(null);
   const [route, setRoute] = useState([]);
   const [directionsError, setDirectionsError] = useState(null);
@@ -346,7 +349,7 @@ function App() {
           </svg>
         </button>
         <MapContainer
-          center={defaultPosition}
+          center={[21.0285, 105.8542]}
           zoom={13}
           className="h-full w-full z-0"
           ref={mapRef}
