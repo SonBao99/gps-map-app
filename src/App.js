@@ -4,6 +4,7 @@ import RideTracker from './RideTracker';
 import { getCachedRoute, setCachedRoute } from './routeCache';
 import GeocodeInput from './GeocodeInput';
 import MusicApp from './MusicApp';
+import WeatherApp from './WeatherApp';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, useMapEvent } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -143,6 +144,7 @@ function App() {
   const [loadingDirections, setLoadingDirections] = useState(false);
   const [lastRouteKey, setLastRouteKey] = useState("");
   const [musicOpen, setMusicOpen] = useState(false);
+  const [weatherOpen, setWeatherOpen] = useState(false);
   const [tracking, setTracking] = useState(false);
   // Removed unused rideStats state to fix lint warning.
   const [demoMode, setDemoMode] = useState(false);
@@ -297,19 +299,33 @@ function App() {
         </button>
       )}
       {/* Music App Open Button */}
-      <button
-        onClick={() => setMusicOpen(true)}
-        className="absolute top-4 right-4 z-[1000] bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-md"
-        aria-label="Open music app"
-      >
-        {/* Music Note Icon */}
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-2v13" />
-          <circle cx="6" cy="18" r="3" />
-          <circle cx="18" cy="16" r="3" />
-        </svg>
-      </button>
+      <div className="absolute top-4 right-4 z-[1000] flex gap-2">
+        <button
+          onClick={() => setWeatherOpen(true)}
+          className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full shadow-md"
+          aria-label="Open weather app"
+        >
+          {/* Weather (sun/cloud) Icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+            <circle cx="12" cy="12" r="5" fill="#facc15" stroke="#eab308" strokeWidth="2" />
+            <path stroke="#eab308" strokeWidth="2" strokeLinecap="round" d="M12 2v2m0 16v2m10-10h-2M4 12H2m16.24 5.66l-1.42-1.42M6.34 6.34l-1.42-1.42m0 13.44l1.42-1.42m13.44-13.44l-1.42 1.42" />
+          </svg>
+        </button>
+        <button
+          onClick={() => setMusicOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-md"
+          aria-label="Open music app"
+        >
+          {/* Music Note Icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-2v13" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="16" r="3" />
+          </svg>
+        </button>
+      </div>
       <MusicApp open={musicOpen} onClose={() => setMusicOpen(false)} />
+      <WeatherApp open={weatherOpen} onClose={() => setWeatherOpen(false)} darkMode={darkMode} />
 
       {/* Sidebar */}
       <div

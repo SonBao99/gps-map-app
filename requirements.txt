@@ -1,0 +1,2 @@
+# For weather integration (OpenWeatherMap API)
+dotenv
