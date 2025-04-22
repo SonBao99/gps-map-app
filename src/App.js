@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import LoadingSpinner from './LoadingSpinner';
+import RideTracker from './RideTracker';
 import { getCachedRoute, setCachedRoute } from './routeCache';
 import GeocodeInput from './GeocodeInput';
 import MusicApp from './MusicApp';
@@ -20,6 +21,7 @@ L.Icon.Default.mergeOptions({
 function LocationMarker({ onLocation }) {
   const [position, setPosition] = useState(null);
   const [locationError, setLocationError] = useState(null);
+  const [errorLogged, setErrorLogged] = useState(false);
   const map = useMap();
   const lastPositionRef = useRef(null);
 
@@ -32,8 +34,8 @@ function LocationMarker({ onLocation }) {
             const newPos = [latitude, longitude];
             setPosition(newPos);
             setLocationError(null);
+            setErrorLogged(false);
             if (onLocation) onLocation(newPos);
-            // Only flyTo if position changed and map is ready
             if (
               map &&
               (!lastPositionRef.current ||
@@ -45,9 +47,11 @@ function LocationMarker({ onLocation }) {
             }
           },
           (error) => {
-            console.error('Error getting location:', error);
-            setLocationError(`Error getting location: ${error.message}`);
-            // Set dummy Hanoi position if denied
+            if (!errorLogged) {
+              console.error('Error getting location:', error);
+              setErrorLogged(true);
+            }
+            setLocationError('Location access denied. Using default Hanoi position.');
             if (onLocation) onLocation([21.0285, 105.8542]);
             setPosition([21.0285, 105.8542]);
           }
@@ -59,14 +63,14 @@ function LocationMarker({ onLocation }) {
     updatePosition();
     const intervalId = setInterval(updatePosition, 10000);
     return () => clearInterval(intervalId);
-  }, [map, onLocation]);
+  }, [map, onLocation, errorLogged]);
 
   return position ? (
     <Marker position={position}>
       <Popup>You are here</Popup>
     </Marker>
   ) : locationError ? (
-    <Popup position={[0, 0]} isOpen>
+    <Popup position={[21.0285, 105.8542]} isOpen>
       {locationError}
     </Popup>
   ) : null;
@@ -139,6 +143,13 @@ function App() {
   const [loadingDirections, setLoadingDirections] = useState(false);
   const [lastRouteKey, setLastRouteKey] = useState("");
   const [musicOpen, setMusicOpen] = useState(false);
+  const [tracking, setTracking] = useState(false);
+  const [rideStats, setRideStats] = useState({ positions: [], distance: 0, duration: 0, speed: 0 });
+  const [demoMode, setDemoMode] = useState(false);
+  const [rideHistory, setRideHistory] = useState(() => {
+    const stored = localStorage.getItem('rideHistory');
+    return stored ? JSON.parse(stored) : [];
+  });
   const mapRef = useRef();
 
   useEffect(() => {
@@ -246,8 +257,35 @@ function App() {
     setDestinationPopup(true);
   };
 
+  // Handle finish ride
+  const handleFinishRide = (ride) => {
+    setTracking(false);
+    const newRide = {
+      ...ride,
+      date: new Date().toISOString(),
+    };
+    const updatedHistory = [newRide, ...rideHistory];
+    setRideHistory(updatedHistory);
+    localStorage.setItem('rideHistory', JSON.stringify(updatedHistory));
+  };
+
   return (
     <div className={`h-screen flex ${darkMode ? 'dark' : ''}`}>
+      {/* Ride Tracking Controls */}
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[1100] flex gap-3 items-center">
+        <button
+          className={`px-6 py-2 rounded-lg shadow-md font-bold text-lg ${tracking ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}
+          onClick={() => setTracking((t) => !t)}
+        >
+          {tracking ? 'Stop Ride' : 'Start Ride'}
+        </button>
+        <button
+          className={`px-4 py-2 rounded-lg font-bold text-sm ${demoMode ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+          onClick={() => setDemoMode((d) => !d)}
+        >
+          {demoMode ? 'Demo Mode: ON' : 'Demo Mode: OFF'}
+        </button>
+      </div>
       {/* Sidebar Toggle Button */}
       {!sidebarOpen && (
         <button
@@ -330,6 +368,20 @@ function App() {
           )}
         </div>
 
+        {/* Ride History Section */}
+        <div className="mb-6">
+          <h2 className="font-bold text-base mb-2 text-gray-800 dark:text-white">Ride History</h2>
+          <div className="max-h-52 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
+            {rideHistory.length === 0 && <div className="text-gray-400 italic">No rides yet.</div>}
+            {rideHistory.map((ride, idx) => (
+              <div key={ride.date + idx} className="py-2">
+                <div className="font-semibold text-blue-700 dark:text-blue-300">{new Date(ride.date).toLocaleString()}</div>
+                <div className="text-sm">Distance: {(ride.distance / 1000).toFixed(2)} km</div>
+                <div className="text-sm">Duration: {Math.floor(ride.duration / 60)}:{(ride.duration % 60).toString().padStart(2, '0')}</div>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="mt-auto text-sm text-gray-600 dark:text-gray-400">
           <p>Position updates every 10 seconds</p>
           <p className="mt-2">© {new Date().getFullYear()} GPS Map App</p>
@@ -374,6 +426,8 @@ function App() {
             directionsError={directionsError}
           />
           <DirectionsPolyline route={route} />
+          {/* Live Ride Tracker Polyline and Marker */}
+          <RideTracker tracking={tracking} onRideUpdate={setRideStats} demoMode={demoMode} directionRoute={route} onFinishRide={handleFinishRide} />
           <MapClickHandler onClick={handleMapClick} />
         </MapContainer>
       </div>
