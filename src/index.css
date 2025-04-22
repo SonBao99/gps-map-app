@@ -1,6 +1,11 @@
+@import './fonts.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  font-family: theme('fontFamily.sans');
+}
 
 /* Leaflet specific styles */
 .leaflet-container {

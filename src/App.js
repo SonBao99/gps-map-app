@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import LoadingSpinner from './LoadingSpinner';
 import { getCachedRoute, setCachedRoute } from './routeCache';
 import GeocodeInput from './GeocodeInput';
+import MusicApp from './MusicApp';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, useMapEvent } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -127,6 +128,7 @@ function App() {
   const [destinationPopup, setDestinationPopup] = useState(false);
   const [loadingDirections, setLoadingDirections] = useState(false);
   const [lastRouteKey, setLastRouteKey] = useState("");
+  const [musicOpen, setMusicOpen] = useState(false);
   const mapRef = useRef();
 
   useEffect(() => {
@@ -249,6 +251,20 @@ function App() {
           <MenuIcon className="h-6 w-6 text-gray-700 dark:text-gray-200" />
         </button>
       )}
+      {/* Music App Open Button */}
+      <button
+        onClick={() => setMusicOpen(true)}
+        className="absolute top-4 right-4 z-[1000] bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-md"
+        aria-label="Open music app"
+      >
+        {/* Music Note Icon */}
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-2v13" />
+          <circle cx="6" cy="18" r="3" />
+          <circle cx="18" cy="16" r="3" />
+        </svg>
+      </button>
+      <MusicApp open={musicOpen} onClose={() => setMusicOpen(false)} />
 
       {/* Sidebar */}
       <div
