@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import LoadingSpinner from './LoadingSpinner';
+import { getCachedRoute, setCachedRoute } from './routeCache';
+import GeocodeInput from './GeocodeInput';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, useMapEvent } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -86,9 +89,9 @@ function DestinationMarker({ destination, onGetDirections, showPopup, distance, 
           </button>
           {directionsError && <span className="text-xs text-red-500">{directionsError}</span>}
           {(distance !== null && duration !== null) && (
-            <div className="text-xs text-gray-800 dark:text-gray-200">
-              <div>Distance: {(distance/1000).toFixed(2)} km</div>
-              <div>Estimated time: {Math.floor(duration/60)} min {Math.round(duration%60)} sec</div>
+            <div className="mt-2">
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">Distance: {(distance/1000).toFixed(2)} km</div>
+              <div className="text-lg font-bold text-green-600 dark:text-green-400">Estimated time: {Math.floor(duration/60)} min {Math.round(duration%60)} sec</div>
             </div>
           )}
         </div>
@@ -111,17 +114,19 @@ function MapClickHandler({ onClick }) {
 }
 
 function App() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [defaultPosition, setDefaultPosition] = useState([51.505, -0.09]);
+  const [defaultPosition, setDefaultPosition] = useState([21.0285, 105.8542]);
   const [userPosition, setUserPosition] = useState(null);
   const [destination, setDestination] = useState(null);
   const [route, setRoute] = useState([]);
   const [directionsError, setDirectionsError] = useState(null);
   const [distance, setDistance] = useState(null);
   const [duration, setDuration] = useState(null);
-  const [destInput, setDestInput] = useState({ lat: '', lng: '' });
+  const [destInput, setDestInput] = useState({ label: '', lat: '', lng: '' });
   const [destinationPopup, setDestinationPopup] = useState(false);
+  const [loadingDirections, setLoadingDirections] = useState(false);
+  const [lastRouteKey, setLastRouteKey] = useState("");
   const mapRef = useRef();
 
   useEffect(() => {
@@ -141,41 +146,84 @@ function App() {
     setDefaultPosition(pos);
   };
 
-  // Handle destination input changes
-  const handleDestInputChange = (e) => {
-    setDestInput({ ...destInput, [e.target.name]: e.target.value });
+  // Handle geocode selection
+  const handleGeocodeSelect = ({ lat, lng, label }) => {
+    setDestination([lat, lng]);
+    setDestInput({ label, lat, lng });
+    setDirectionsError(null);
+    setDistance(null);
+    setDuration(null);
+    setRoute([]);
+    setDestinationPopup(true);
   };
 
-  // Set destination from sidebar input
-  const handleSetDestination = () => {
-    if (!isNaN(Number(destInput.lat)) && !isNaN(Number(destInput.lng))) {
-      setDestination([parseFloat(destInput.lat), parseFloat(destInput.lng)]);
-    }
-  };
 
-  // Fetch directions from OSRM
+  // Fetch directions from OSRM or Mapbox, with caching and loading
   const fetchDirections = async () => {
     if (!userPosition || !destination) return;
+    const from = `${userPosition[0]},${userPosition[1]}`;
+    const to = `${destination[0]},${destination[1]}`;
+    const routeKey = `${from}|${to}`;
+    if (routeKey === lastRouteKey && distance !== null && duration !== null && route.length) {
+      // Already fetched this route, do nothing
+      setDestinationPopup(true);
+      return;
+    }
     setDirectionsError(null);
     setRoute([]);
     setDistance(null);
     setDuration(null);
+    setLoadingDirections(true);
+    setLastRouteKey(routeKey);
+    // Check cache
+    const cached = getCachedRoute(routeKey);
+    if (cached) {
+      setRoute(cached.route);
+      setDistance(cached.distance);
+      setDuration(cached.duration);
+      setLoadingDirections(false);
+      setDestinationPopup(true);
+      return;
+    }
     try {
-      const url = `https://router.project-osrm.org/route/v1/foot/${userPosition[1]},${userPosition[0]};${destination[1]},${destination[0]}?overview=full&geometries=geojson`;
-      const response = await fetch(url);
-      const data = await response.json();
-      if (data.routes && data.routes.length > 0) {
-        const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-        setRoute(coords);
-        setDistance(data.routes[0].distance); // meters
-        setDuration(data.routes[0].duration); // seconds
+      let coords, dist, dur;
+      let data;
+      // Prefer Mapbox if token is set
+      const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
+      if (MAPBOX_TOKEN) {
+        const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${userPosition[1]},${userPosition[0]};${destination[1]},${destination[0]}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
+        const response = await fetch(url);
+        data = await response.json();
+        if (data.routes && data.routes.length > 0) {
+          coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+          dist = data.routes[0].distance;
+          dur = data.routes[0].duration;
+        } else {
+          throw new Error('No route found.');
+        }
       } else {
-        setDirectionsError('No route found.');
+        // Fallback to OSRM
+        const url = `https://router.project-osrm.org/route/v1/foot/${userPosition[1]},${userPosition[0]};${destination[1]},${destination[0]}?overview=full&geometries=geojson`;
+        const response = await fetch(url);
+        data = await response.json();
+        if (data.routes && data.routes.length > 0) {
+          coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+          dist = data.routes[0].distance;
+          dur = data.routes[0].duration;
+        } else {
+          throw new Error('No route found.');
+        }
       }
+      setRoute(coords);
+      setDistance(dist);
+      setDuration(dur);
+      setCachedRoute(routeKey, { route: coords, distance: dist, duration: dur });
     } catch (err) {
       setDirectionsError('Failed to fetch directions.');
+    } finally {
+      setLoadingDirections(false);
+      setDestinationPopup(true);
     }
-    setDestinationPopup(true);
   };
 
   // Handle map click to set destination
@@ -192,17 +240,15 @@ function App() {
   return (
     <div className={`h-screen flex ${darkMode ? 'dark' : ''}`}>
       {/* Sidebar Toggle Button */}
-      <button
-        onClick={toggleSidebar}
-        className="absolute top-4 left-4 z-[1000] bg-white dark:bg-gray-800 p-2 rounded-md shadow-md"
-        aria-label="Toggle sidebar"
-      >
-        {sidebarOpen ? (
-          <XIcon className="h-6 w-6 text-gray-700 dark:text-gray-200" />
-        ) : (
+      {!sidebarOpen && (
+        <button
+          onClick={toggleSidebar}
+          className="absolute top-24 left-4 z-[1000] bg-white dark:bg-gray-800 p-2 rounded-md shadow-md"
+          aria-label="Open sidebar"
+        >
           <MenuIcon className="h-6 w-6 text-gray-700 dark:text-gray-200" />
-        )}
-      </button>
+        </button>
+      )}
 
       {/* Sidebar */}
       <div
@@ -211,51 +257,33 @@ function App() {
           fixed top-0 left-0 h-full w-72 bg-white dark:bg-gray-800 shadow-lg z-[999]
           flex flex-col p-4`}
       >
+        {/* Close Sidebar Button */}
+        <button
+          onClick={toggleSidebar}
+          className="absolute top-4 right-4 z-[1001] bg-gray-200 dark:bg-gray-700 p-2 rounded-full shadow-md"
+          aria-label="Close sidebar"
+        >
+          <XIcon className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+        </button>
         <h1 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">GPS Map App</h1>
 
         <div className="flex items-center justify-between mb-4">
-          <span className="text-gray-700 dark:text-gray-300">Dark Mode</span>
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 rounded-full bg-gray-200 dark:bg-gray-700"
-            aria-label="Toggle dark mode"
-          >
-            {darkMode ? (
-              <SunIcon className="h-5 w-5 text-yellow-500" />
-            ) : (
-              <MoonIcon className="h-5 w-5 text-gray-700" />
-            )}
-          </button>
+          <div className="flex gap-2 items-center">
+            <button onClick={toggleDarkMode} className="p-1 rounded-full bg-gray-200 dark:bg-gray-700">
+              {darkMode ? (
+                <SunIcon className="h-5 w-5 text-yellow-500" />
+              ) : (
+                <MoonIcon className="h-5 w-5 text-gray-800" />
+              )}
+            </button>
+            <span className="text-sm text-gray-700 dark:text-gray-200">{darkMode ? 'Dark' : 'Light'} Mode</span>
+          </div>
         </div>
 
-        {/* Destination Creator */}
+        {/* Destination Search Input */}
         <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Set Destination</h2>
-          <div className="flex gap-2 mb-2">
-            <input
-              type="number"
-              name="lat"
-              className="w-1/2 px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
-              placeholder="Latitude"
-              value={destInput.lat}
-              onChange={handleDestInputChange}
-            />
-            <input
-              type="number"
-              name="lng"
-              className="w-1/2 px-2 py-1 rounded border border-gray-300 dark:bg-gray-700 dark:text-white"
-              placeholder="Longitude"
-              value={destInput.lng}
-              onChange={handleDestInputChange}
-            />
-          </div>
-          <button
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-1 rounded mb-2"
-            onClick={handleSetDestination}
-          >
-            Set Destination
-          </button>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Or click on the map to set destination.</p>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Destination Search</label>
+          <GeocodeInput onSelect={handleGeocodeSelect} placeholder="Search for a place or address..." />
         </div>
 
         {/* Directions */}
@@ -267,13 +295,14 @@ function App() {
           >
             Get Directions
           </button>
+          {loadingDirections && <LoadingSpinner />}
           {directionsError && (
             <p className="text-xs text-red-500 mt-2">{directionsError}</p>
           )}
-          {(distance !== null && duration !== null) && (
-            <div className="mt-2 text-xs text-gray-800 dark:text-gray-200">
-              <div>Distance: {(distance/1000).toFixed(2)} km</div>
-              <div>Estimated time: {Math.floor(duration/60)} min {Math.round(duration%60)} sec</div>
+          {(distance !== null && duration !== null && !loadingDirections) && (
+            <div className="mt-2">
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">Distance: {(distance/1000).toFixed(2)} km</div>
+              <div className="text-lg font-bold text-green-600 dark:text-green-400">Estimated time: {Math.floor(duration/60)} min {Math.round(duration%60)} sec</div>
             </div>
           )}
         </div>
@@ -286,6 +315,22 @@ function App() {
 
       {/* Map */}
       <div className="flex-1 relative">
+        {/* Current Location Button */}
+        <button
+          className="fixed bottom-8 right-8 z-[1100] bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg focus:outline-none"
+          title="Go to current location"
+          onClick={() => {
+            if (userPosition && mapRef.current) {
+              mapRef.current.setView(userPosition, 16, { animate: true });
+            }
+          }}
+        >
+          {/* Location SVG Icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a6 6 0 100-12 6 6 0 000 12z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v2m0 16v2m10-10h-2M4 12H2" />
+          </svg>
+        </button>
         <MapContainer
           center={defaultPosition}
           zoom={13}
