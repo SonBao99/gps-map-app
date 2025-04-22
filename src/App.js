@@ -81,7 +81,14 @@ function DestinationMarker({ destination, onGetDirections, showPopup, distance, 
     }
   }, [showPopup, destination]);
   return destination ? (
-    <Marker position={destination} ref={markerRef}>
+    <Marker position={destination} ref={markerRef} icon={L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+      shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    })}>
       <Popup>
         <div className="flex flex-col gap-2">
           <span>Destination</span>
@@ -148,7 +155,6 @@ function App() {
   // When user location updates, update state
   const handleLocation = (pos) => {
     setUserPosition(pos);
-    setDefaultPosition(pos);
   };
 
   // Handle geocode selection
