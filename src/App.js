@@ -120,7 +120,7 @@ function MapClickHandler({ onClick }) {
 function App() {
   const [darkMode, setDarkMode] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [defaultPosition, setDefaultPosition] = useState([21.0285, 105.8542]);
+
   const [userPosition, setUserPosition] = useState([21.0285, 105.8542]);
   const [destination, setDestination] = useState(null);
   const [route, setRoute] = useState([]);
