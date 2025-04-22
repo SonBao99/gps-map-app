@@ -22,44 +22,7 @@ function WeatherApp({ open, onClose, darkMode }) {
   ];
 
   // Dynamic background gradient based on weather
-  let gradient;
-  switch (weather.weather[0].main) {
-    case 'Clear':
-      gradient = darkMode
-        ? 'bg-gradient-to-b from-[#232526] via-[#414345] to-[#0f2027]'
-        : 'bg-gradient-to-b from-[#56CCF2] via-[#2F80ED] to-[#F6F1F1]';
-      break;
-    case 'Clouds':
-      gradient = darkMode
-        ? 'bg-gradient-to-b from-[#232526] via-[#757F9A] to-[#485563]'
-        : 'bg-gradient-to-b from-[#BBD2C5] via-[#536976] to-[#292E49]';
-      break;
-    case 'Rain':
-      gradient = darkMode
-        ? 'bg-gradient-to-b from-[#232526] via-[#485563] to-[#283E51]'
-        : 'bg-gradient-to-b from-[#83a4d4] via-[#b6fbff] to-[#3b6978]';
-      break;
-    case 'Thunderstorm':
-      gradient = darkMode
-        ? 'bg-gradient-to-b from-[#232526] via-[#414345] to-[#000000]'
-        : 'bg-gradient-to-b from-[#4B79A1] via-[#283E51] to-[#000000]';
-      break;
-    case 'Snow':
-      gradient = darkMode
-        ? 'bg-gradient-to-b from-[#232526] via-[#ECE9E6] to-[#414345]'
-        : 'bg-gradient-to-b from-[#E0EAFC] via-[#CFDEF3] to-[#FFFFFF]';
-      break;
-    case 'Mist':
-    case 'Fog':
-      gradient = darkMode
-        ? 'bg-gradient-to-b from-[#232526] via-[#616161] to-[#434343]'
-        : 'bg-gradient-to-b from-[#D7D2CC] via-[#304352] to-[#636363]';
-      break;
-    default:
-      gradient = darkMode
-        ? 'bg-gradient-to-b from-[#232526] via-[#2c5364] to-[#0f2027]'
-        : 'bg-gradient-to-b from-[#7FBCD2] via-[#A5C9CA] to-[#F6F1F1]';
-  }
+
 
   const textColor = darkMode ? "text-white" : "text-gray-900";
   const subTextColor = darkMode ? "text-blue-200" : "text-blue-800";
