@@ -273,21 +273,7 @@ function App() {
 
   return (
     <div className={`h-screen flex ${darkMode ? 'dark' : ''}`}>
-      {/* Ride Tracking Controls */}
-      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[1100] flex gap-3 items-center">
-        <button
-          className={`px-6 py-2 rounded-lg shadow-md font-bold text-lg ${tracking ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}
-          onClick={() => setTracking((t) => !t)}
-        >
-          {tracking ? 'Stop Ride' : 'Start Ride'}
-        </button>
-        <button
-          className={`px-4 py-2 rounded-lg font-bold text-sm ${demoMode ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-          onClick={() => setDemoMode((d) => !d)}
-        >
-          {demoMode ? 'Demo Mode: ON' : 'Demo Mode: OFF'}
-        </button>
-      </div>
+
       {/* Sidebar Toggle Button */}
       {!sidebarOpen && (
         <button
@@ -386,21 +372,58 @@ function App() {
 
         {/* Ride History Section */}
         <div className="mb-6">
-          <h2 className="font-bold text-base mb-2 text-gray-800 dark:text-white">Ride History</h2>
-          <div className="max-h-52 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
-            {rideHistory.length === 0 && <div className="text-gray-400 italic">No rides yet.</div>}
+          <h2 className="font-extrabold text-lg mb-3 text-blue-700 dark:text-blue-300 font-poppins tracking-wide drop-shadow">Ride History</h2>
+          <div className="max-h-52 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700 bg-white/80 dark:bg-gray-900/90 rounded-xl border border-gray-200 dark:border-gray-700 shadow-inner p-2">
+            {rideHistory.length === 0 && <div className="text-gray-400 italic font-medium text-center py-4">No rides yet.</div>}
             {rideHistory.map((ride, idx) => (
-              <div key={ride.date + idx} className="py-2">
-                <div className="font-semibold text-blue-700 dark:text-blue-300">{new Date(ride.date).toLocaleString()}</div>
-                <div className="text-sm">Distance: {(ride.distance / 1000).toFixed(2)} km</div>
-                <div className="text-sm">Duration: {Math.floor(ride.duration / 60)}:{(ride.duration % 60).toString().padStart(2, '0')}</div>
+              <div key={ride.date + idx} className="py-3 px-2 flex flex-col gap-1 relative group">
+                <button
+                  className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 dark:hover:text-red-400 dark:text-gray-600 z-10"
+                  title="Delete ride"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to delete this ride?')) {
+                      const updated = rideHistory.filter((_, i) => i !== idx);
+                      setRideHistory(updated);
+                      localStorage.setItem('rideHistory', JSON.stringify(updated));
+                    }
+                  }}
+                  aria-label="Delete ride"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-5 h-5" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6l8 8M6 14L14 6" />
+                  </svg>
+                </button>
+                <div className="font-bold text-base text-blue-800 dark:text-blue-200 font-poppins">{new Date(ride.date).toLocaleString()}</div>
+                <div className="text-[15px] text-gray-800 dark:text-gray-200 font-medium">
+                  Distance: <span className="font-semibold">{(ride.distance / 1000).toFixed(2)} km</span>
+                </div>
+                <div className="text-[15px] text-gray-800 dark:text-gray-200 font-medium">
+                  Duration: <span className="font-semibold">{Math.floor(ride.duration / 60)}:{(ride.duration % 60).toString().padStart(2, '0')}</span>
+                </div>
               </div>
             ))}
           </div>
         </div>
-        <div className="mt-auto text-sm text-gray-600 dark:text-gray-400">
-          <p>Position updates every 10 seconds</p>
-          <p className="mt-2">© {new Date().getFullYear()} GPS Map App</p>
+        {/* Ride Controls at Bottom of Sidebar */}
+        <div className="mt-auto">
+          <div className="flex flex-col gap-2 mb-4">
+            <button
+              className={`w-full px-6 py-2 rounded-lg shadow-md font-bold text-lg ${tracking ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}
+              onClick={() => setTracking((t) => !t)}
+            >
+              {tracking ? 'Stop Ride' : 'Start Ride'}
+            </button>
+            <button
+              className={`w-full px-4 py-2 rounded-lg font-bold text-sm ${demoMode ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+              onClick={() => setDemoMode((d) => !d)}
+            >
+              {demoMode ? 'Demo Mode: ON' : 'Demo Mode: OFF'}
+            </button>
+          </div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            <p>Position updates every 10 seconds</p>
+            <p className="mt-2">© {new Date().getFullYear()} GPS Map App</p>
+          </div>
         </div>
       </div>
 
